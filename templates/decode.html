@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decode Message - SecretLens</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #fff;
+            --secondary: #333;
+            --accent: #666;
+            --dark-bg: #000;
+            --glow: rgba(255, 255, 255, 0.15);
+            --circuit-pattern: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h80v80h-80z' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3Cpath d='M30 30h40v40h-40z' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3Cpath d='M20 20h60v60h-60z' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3C/svg%3E");
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            color: var(--primary);
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, rgba(0,0,0,0.9) 0%, rgba(20,20,20,0.9) 100%),
+                var(--circuit-pattern);
+            z-index: -2;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--primary);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            color: var(--primary);
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .main-content {
+            padding-top: 100px;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .decode-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 30px rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .decode-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                repeating-linear-gradient(45deg, 
+                    rgba(255,255,255,0.03) 0px, 
+                    rgba(255,255,255,0.03) 1px,
+                    transparent 1px, 
+                    transparent 10px);
+            animation: rotate 60s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+            text-align: center;
+            margin-bottom: 2rem;
+            letter-spacing: 3px;
+        }
+
+        .upload-zone {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, 
+                    rgba(255,255,255,0.05) 25%, 
+                    transparent 25%, 
+                    transparent 50%, 
+                    rgba(255,255,255,0.05) 50%, 
+                    rgba(255,255,255,0.05) 75%, 
+                    transparent 75%, 
+                    transparent);
+            background-size: 20px 20px;
+            animation: move 2s linear infinite;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        @keyframes move {
+            0% { background-position: 0 0; }
+            100% { background-position: 40px 40px; }
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .preview-container {
+            max-width: 100%;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        #preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--primary);
+        }
+
+        .form-control {
+            background: rgba(0, 20, 0, 0.3);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 1rem;
+            font-family: 'Share Tech Mono', monospace;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control:focus {
+            background: rgba(0, 20, 0, 0.5);
+            border-color: var(--accent);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        }
+
+        .btn-cyber {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            font-size: 1.2rem;
+            padding: 1rem 2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn-cyber::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,0,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .btn-cyber:hover {
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 0 20px var(--glow);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .btn-cyber:hover::before {
+            left: 100%;
+        }
+
+        .btn-cyber i {
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .decode-container {
+                padding: 1rem;
+            }
+
+            .upload-zone {
+                padding: 2rem;
+            }
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+        }
+
+        /* Add glitch effect */
+        @keyframes glitch {
+            0% {
+                clip-path: inset(50% 0 30% 0);
+                transform: translate(-5px, 5px);
+            }
+            20% {
+                clip-path: inset(15% 0 65% 0);
+                transform: translate(5px, -5px);
+            }
+            40% {
+                clip-path: inset(80% 0 5% 0);
+                transform: translate(-5px, 5px);
+            }
+            60% {
+                clip-path: inset(25% 0 60% 0);
+                transform: translate(5px, -5px);
+            }
+            80% {
+                clip-path: inset(70% 0 20% 0);
+                transform: translate(-5px, 5px);
+            }
+            100% {
+                clip-path: inset(50% 0 30% 0);
+                transform: translate(0);
+            }
+        }
+
+        .section-title:hover {
+            animation: glitch 500ms infinite linear;
+        }
+
+        .cyber-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+        }
+
+        /* Add styles for the message output */
+        .message-output {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .message-output h3 {
+            color: var(--primary);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 5px var(--primary);
+        }
+
+        .message-output pre {
+            color: var(--primary);
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">SecretLens</a>
+            <div class="d-flex">
+                <a href="/encode" class="btn btn-cyber me-2">
+                    <i class="fas fa-lock"></i>
+                </a>
+                <a href="/decode" class="btn btn-cyber">
+                    <i class="fas fa-unlock"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="decode-container" data-aos="fade-up">
+            <h1 class="section-title">
+                <i class="fas fa-shield-alt cyber-icon"></i><br>
+                Reveal Your Secret
+            </h1>
+            
+            <form id="decode-form">
+                <div class="upload-zone" id="drop-zone">
+                    <input type="file" name="image" id="image" class="d-none" accept="image/*" required>
+                    <i class="fas fa-upload upload-icon"></i>
+                    <p class="mb-0">Drop your encoded image here or click to upload</p>
+                    <div class="preview-container">
+                        <img id="preview-image" src="#" alt="Preview">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" 
+                           class="form-control" 
+                           name="password" 
+                           id="password" 
+                           placeholder="Enter decryption password" 
+                           required>
+                </div>
+
+                <button type="submit" class="btn btn-cyber">
+                    <i class="fas fa-unlock me-2"></i>Decrypt Message
+                </button>
+    </form>
+
+            <div class="loading">
+                <i class="fas fa-circle-notch fa-2x"></i>
+            </div>
+
+            <div class="message-output">
+                <h3><i class="fas fa-unlock"></i> Decrypted Message:</h3>
+                <pre id="decrypted-message"></pre>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="matrix" class="matrix-bg"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 1000,
+            once: true
+        });
+
+        // Your existing drag and drop functionality
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('image');
+        const previewImage = document.getElementById('preview-image');
+        const previewContainer = document.querySelector('.preview-container');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+            dropZone.style.background = 'rgba(0, 255, 0, 0.1)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+            dropZone.style.background = 'rgba(0, 255, 0, 0.05)';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updatePreview(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                updatePreview(e.target.files[0]);
+            }
+        });
+
+        function updatePreview(file) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    document.querySelector('.upload-icon').style.display = 'none';
+                    document.querySelector('.upload-zone p').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Matrix rain effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+        const alphabet = katakana + latin + nums;
+
+        const fontSize = 16;
+        const columns = canvas.width/fontSize;
+
+        const rainDrops = [];
+
+        for( let x = 0; x < columns; x++ ) {
+            rainDrops[x] = 1;
+        }
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for(let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i*fontSize, rainDrops[i]*fontSize);
+
+                if(rainDrops[i]*fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        };
+
+        setInterval(draw, 30);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Handle form submission
+        document.getElementById('decode-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const loading = document.querySelector('.loading');
+            const messageOutput = document.querySelector('.message-output');
+            const messageText = document.getElementById('decrypted-message');
+
+            try {
+                loading.style.display = 'block';
+                messageOutput.style.display = 'none';
+
+                const response = await fetch('/decode', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                messageText.textContent = data.message;
+                messageOutput.style.display = 'block';
+            } catch (error) {
+                messageText.textContent = `Error: ${error.message}`;
+                messageOutput.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
